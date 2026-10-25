@@ -1,0 +1,21 @@
+{
+  "name": "Mi Viajecito",
+  "short_name": "MiViajecito",
+  "description": "Planificador colaborativo de viajes con extracción de videos de YouTube, mapas libres y billetera de boletos offline.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
