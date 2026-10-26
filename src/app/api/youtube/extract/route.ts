@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { YoutubeTranscript } from 'youtube-transcript';
-import { GoogleGenAI } from '@google/genai';
 import { Ytdl } from '@distube/ytdl-core';
+import { generateWithGemini } from '@/lib/ai/gemini';
 import { ExtractedPlaceItem } from '@/types';
 
 // Extract YouTube ID from various URL formats
@@ -165,7 +165,6 @@ export async function POST(req: NextRequest) {
       let extractedPlaces: ExtractedPlaceItem[] = [];
 
       if (apiKey && !apiKey.includes('your-gemini')) {
-        const ai = new GoogleGenAI({ apiKey });
         const prompt = `Actúa como un experto en viajes. A partir de las siguientes notas o descripción sobre "${city}", extrae los lugares turísticos o de interés específicos mencionados (monumentos, miradores, restaurantes, templos, etc.).
 
 Para cada lugar incluye estrictamente en JSON:
@@ -181,12 +180,8 @@ Responde ÚNICAMENTE con un arreglo JSON válido:
 Texto:
 ${rawText.slice(0, 15000)}`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: prompt,
-        });
-
-        const cleanJson = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+        const rawResponse = await generateWithGemini(apiKey, prompt);
+        const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
         extractedPlaces = JSON.parse(cleanJson);
       } else {
         extractedPlaces = getDemoExtractedPlaces(city);
@@ -257,8 +252,7 @@ ${rawText.slice(0, 15000)}`;
       return NextResponse.json({ success: true, source: 'demo_simulation', places: geocoded });
     }
 
-    // Step 4: Call Gemini 2.0 Flash
-    const ai = new GoogleGenAI({ apiKey });
+    // Step 4: Call Gemini 3.8 Flash
     let extractedPlaces: ExtractedPlaceItem[] = [];
 
     const basePrompt = `Actúa como un experto en planificación de viajes. Tu misión es extraer los lugares de interés específicos (monumentos, museos, miradores, restaurantes, templos, parques, etc.) que se mencionan o recomiendan para visitar en "${city}".
@@ -276,40 +270,32 @@ Responde ÚNICAMENTE con un arreglo JSON válido sin explicaciones adicionales:
     if (transcriptText) {
       // Use transcript
       const prompt = `${basePrompt}\n\nTítulo del video: ${videoTitle}\nDescripción: ${videoDescription}\n\nTranscripción del video:\n${transcriptText}`;
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-      const cleanJson = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+      const rawResponse = await generateWithGemini(apiKey, prompt);
+      const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       extractedPlaces = JSON.parse(cleanJson);
     } else if (audioData) {
       // Use audio file directly with Gemini multimodal audio
-      console.log('Sending audio directly to Gemini 2.0 Flash...');
+      console.log('Sending audio directly to Gemini...');
       const prompt = `${basePrompt}\n\nEscucha atentamente el audio de este video de viaje sobre "${city}" y toma en cuenta también el título: "${videoTitle}" y la descripción: "${videoDescription}". Extrae los lugares de los que se habla en el audio.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [
-          {
-            inlineData: {
-              mimeType: audioData.mimeType,
-              data: audioData.buffer.toString('base64'),
-            },
+      const contents = [
+        {
+          inlineData: {
+            mimeType: audioData.mimeType,
+            data: audioData.buffer.toString('base64'),
           },
-          { text: prompt },
-        ],
-      });
+        },
+        { text: prompt },
+      ];
 
-      const cleanJson = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+      const rawResponse = await generateWithGemini(apiKey, contents);
+      const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       extractedPlaces = JSON.parse(cleanJson);
     } else if (videoDescription && videoDescription.length > 50) {
       // Fallback: extract from video description and title
       const prompt = `${basePrompt}\n\nTítulo del video: ${videoTitle}\nDescripción del video (con capítulos y lugares):\n${videoDescription}`;
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-      const cleanJson = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
+      const rawResponse = await generateWithGemini(apiKey, prompt);
+      const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
       extractedPlaces = JSON.parse(cleanJson);
     } else {
       return NextResponse.json(

@@ -12,7 +12,7 @@ import DayPlanner from '@/components/itinerary/DayPlanner';
 import TicketWallet from '@/components/tickets/TicketWallet';
 import { calculateOptimizedRoute, OptimizedRouteResult } from '@/lib/routing/osrm';
 import { clusterPlacesIntoDays } from '@/lib/routing/clustering';
-import { Share2, MapPin, Calendar, ArrowLeft, Users, Check, Copy, Sparkles, Building, Trash2 } from 'lucide-react';
+import { Share2, MapPin, Calendar, ArrowLeft, Users, Check, Copy, Sparkles, Building, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -37,6 +37,10 @@ export default function TripWorkspacePage({ params }: PageProps) {
   // Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // AI Itinerary Generation State
+  const [isGeneratingItinerary, setIsGeneratingItinerary] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   // Load Trip Data
   useEffect(() => {
@@ -111,6 +115,51 @@ export default function TripWorkspacePage({ params }: PageProps) {
       }
     }
     router.push('/');
+  };
+
+  const handleGenerateItinerary = async () => {
+    if (!trip) return;
+    setIsGeneratingItinerary(true);
+    setGenerateError(null);
+
+    try {
+      const response = await fetch('/api/ai/generate-itinerary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destinationCity: trip.destination_city,
+          destinationCountry: trip.destination_country,
+          totalDays,
+          hotelName: trip.hotel_name,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo generar el itinerario.');
+      }
+
+      if (data.places && data.places.length > 0) {
+        const newPlacesData = data.places.map((item: any) => ({
+          name: item.name,
+          lat: item.lat ?? null,
+          lng: item.lng ?? null,
+          is_located: item.is_located ?? false,
+          pros: item.pros || [],
+          cons: item.cons || [],
+          day_number: item.day_number || 1,
+          visit_order: item.visit_order || 1,
+        }));
+
+        TripStore.addPlaces(tripId, newPlacesData);
+        setPlaces(TripStore.getPlaces(tripId));
+        setSelectedDay(1);
+      }
+    } catch (err: any) {
+      setGenerateError(err.message || 'Error al conectar con la IA.');
+    } finally {
+      setIsGeneratingItinerary(false);
+    }
   };
 
   const handlePlacesExtracted = (extractedItems: any[]) => {
@@ -293,6 +342,42 @@ export default function TripWorkspacePage({ params }: PageProps) {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* AI Quick Itinerary & Places Generator Banner */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-5 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-blue-700/40">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-[11px] font-semibold text-blue-300">
+            <Sparkles size={12} /> Sugerencias de viaje inteligentes
+          </div>
+          <h3 className="font-bold text-base sm:text-lg">
+            ¿Quieres que la IA te proponga el itinerario completo para {trip.destination_city}?
+          </h3>
+          <p className="text-xs text-slate-300 max-w-xl">
+            Gemini analizará {trip.destination_city} y seleccionará los mejores lugares para tus {totalDays} días, agrupándolos por cercanía con pros y contras.
+          </p>
+          {generateError && (
+            <p className="text-xs text-red-300 pt-1 font-medium">⚠ {generateError}</p>
+          )}
+        </div>
+
+        <button
+          onClick={handleGenerateItinerary}
+          disabled={isGeneratingItinerary}
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg transition disabled:opacity-50 shrink-0"
+        >
+          {isGeneratingItinerary ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              <span>Diseñando itinerario...</span>
+            </>
+          ) : (
+            <>
+              <Sparkles size={16} />
+              <span>Proponer Itinerario con IA</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* YouTube Extractor Component */}

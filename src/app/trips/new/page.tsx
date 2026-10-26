@@ -14,6 +14,7 @@ export default function NewTripPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [hotelName, setHotelName] = useState('');
+  const [autoGenerateAI, setAutoGenerateAI] = useState(true);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +59,34 @@ export default function NewTripPage() {
       hotel_lng: hotelLng,
       created_by: 'user-me',
     });
+
+    if (autoGenerateAI) {
+      try {
+        const totalDays = startDate && endDate
+          ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+          : 3;
+
+        const aiRes = await fetch('/api/ai/generate-itinerary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinationCity: city,
+            destinationCountry: country,
+            totalDays,
+            hotelName,
+          }),
+        });
+
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          if (aiData.places && aiData.places.length > 0) {
+            TripStore.addPlaces(created.id, aiData.places);
+          }
+        }
+      } catch (err) {
+        console.warn('Auto AI generation failed', err);
+      }
+    }
 
     router.push(`/trips/${created.id}`);
   };
@@ -159,6 +188,19 @@ export default function NewTripPage() {
               onChange={(e) => setHotelName(e.target.value)}
               className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
             />
+          </div>
+
+          <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 mt-3">
+            <input
+              type="checkbox"
+              id="autoGenerate"
+              checked={autoGenerateAI}
+              onChange={(e) => setAutoGenerateAI(e.target.checked)}
+              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <label htmlFor="autoGenerate" className="text-xs font-semibold text-blue-900 dark:text-blue-200 cursor-pointer select-none">
+              ✨ Proponer automáticamente lugares e itinerario con IA para estos días
+            </label>
           </div>
 
           <div className="pt-4">
