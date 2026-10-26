@@ -4,7 +4,8 @@ export const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flas
 
 export async function generateWithGemini(
   apiKey: string,
-  contents: any,
+  prompt: string,
+  enableSearch = true,
   preferredModel = DEFAULT_GEMINI_MODEL
 ): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
@@ -15,16 +16,36 @@ export async function generateWithGemini(
   let lastError: any = null;
 
   for (const model of candidateModels) {
+    // 1. Try with Google Search tool enabled
+    if (enableSearch) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+          },
+        });
+        if (response && response.text) {
+          return response.text;
+        }
+      } catch (err: any) {
+        console.warn(`Gemini with Google Search on ${model} failed, trying without search:`, err?.message);
+        lastError = err;
+      }
+    }
+
+    // 2. Try standard generation without search tool
     try {
       const response = await ai.models.generateContent({
         model,
-        contents,
+        contents: prompt,
       });
       if (response && response.text) {
         return response.text;
       }
     } catch (err: any) {
-      console.warn(`Gemini generation with ${model} failed:`, err?.message);
+      console.warn(`Standard Gemini generation with ${model} failed:`, err?.message);
       lastError = err;
     }
   }

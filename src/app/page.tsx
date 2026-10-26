@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trip } from '@/types';
 import { TripStore } from '@/lib/store/tripStore';
-import { Compass, Calendar, MapPin, Plus, ArrowRight, Sparkles, Ticket, Users, Trash2 } from 'lucide-react';
-import YoutubeIcon from '@/components/ui/YoutubeIcon';
+import { Compass, Calendar, MapPin, Plus, ArrowRight, Sparkles, Ticket, Users, Trash2, Globe } from 'lucide-react';
 import { isSupabaseConfigured, createClient } from '@/lib/supabase/client';
 
 export default function HomePage() {
@@ -47,11 +46,11 @@ export default function HomePage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            Tus viajes organizados con videos de YouTube y mapas libres.
+            Tus viajes organizados con lo más visitado de la web y redes sociales.
           </h1>
 
           <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
-            Pega enlaces de reseñas de viaje, extrae lugares recomendados con pros y contras al instante, colabora con amigos y ten tus boletos siempre a la mano sin conexión.
+            Descubre las atracciones más populares y virales de internet para tu destino, organiza tus días con mapas libres en español y ten tus boletos offline a la mano.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -67,8 +66,8 @@ export default function HomePage() {
         {/* Feature Highlights on Hero */}
         <div className="mt-8 pt-6 border-t border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <YoutubeIcon size={18} className="text-red-300" />
-            <span>Extracción de POIs desde videos</span>
+            <Globe size={18} className="text-sky-300" />
+            <span>Tendencias de la web y redes sociales</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin size={18} className="text-emerald-300" />

@@ -66,14 +66,13 @@ export default function NewTripPage() {
           ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
           : 3;
 
-        const aiRes = await fetch('/api/ai/generate-itinerary', {
+        const aiRes = await fetch('/api/places/discover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             destinationCity: city,
             destinationCountry: country,
             totalDays,
-            hotelName,
           }),
         });
 
@@ -84,7 +83,7 @@ export default function NewTripPage() {
           }
         }
       } catch (err) {
-        console.warn('Auto AI generation failed', err);
+        console.warn('Auto web recommendations failed', err);
       }
     }
 
@@ -199,7 +198,7 @@ export default function NewTripPage() {
               className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
             <label htmlFor="autoGenerate" className="text-xs font-semibold text-blue-900 dark:text-blue-200 cursor-pointer select-none">
-              ✨ Proponer automáticamente lugares e itinerario con IA para estos días
+              ✨ Proponer lo más visitado en internet y redes sociales para estos días
             </label>
           </div>
 

@@ -5,7 +5,7 @@ import { Compass, Map, User, PlusCircle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Mi Viajecito | Planificador de Viajes Colaborativo',
-  description: 'Extrae lugares de videos de YouTube, optimiza rutas y ten tus boletos offline a la mano.',
+  description: 'Descubre los lugares más visitados de la web y redes sociales, optimiza rutas en mapas en español y ten tus boletos offline a la mano.',
   manifest: '/manifest.json',
   icons: {
     icon: '/icons/icon-192.png',
