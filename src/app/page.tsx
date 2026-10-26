@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Trip } from '@/types';
 import { TripStore } from '@/lib/store/tripStore';
-import { Compass, Calendar, MapPin, Plus, ArrowRight, Sparkles, Ticket, Users } from 'lucide-react';
+import { Compass, Calendar, MapPin, Plus, ArrowRight, Sparkles, Ticket, Users, Trash2 } from 'lucide-react';
 import YoutubeIcon from '@/components/ui/YoutubeIcon';
+import { isSupabaseConfigured, createClient } from '@/lib/supabase/client';
 
 export default function HomePage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -13,6 +14,28 @@ export default function HomePage() {
   useEffect(() => {
     setTrips(TripStore.getTrips());
   }, []);
+
+  const handleDeleteTrip = async (tripId: string, tripTitle: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`¿Estás seguro de que deseas eliminar el viaje "${tripTitle}"?`)) {
+      return;
+    }
+
+    TripStore.deleteTrip(tripId);
+
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        await supabase.from('trips').delete().eq('id', tripId);
+      } catch (err) {
+        console.warn('Error deleting trip from Supabase', err);
+      }
+    }
+
+    setTrips(TripStore.getTrips());
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -101,9 +124,18 @@ export default function HomePage() {
                     <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
                       {trip.destination_city}, {trip.destination_country}
                     </span>
-                    <span className="text-xs text-slate-400 group-hover:text-blue-500 transition">
-                      <ArrowRight size={16} />
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => handleDeleteTrip(trip.id, trip.title, e)}
+                        className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg transition"
+                        title="Eliminar viaje"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                      <span className="text-xs text-slate-400 group-hover:text-blue-500 transition pl-1">
+                        <ArrowRight size={16} />
+                      </span>
+                    </div>
                   </div>
 
                   <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-blue-600 transition">

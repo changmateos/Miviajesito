@@ -200,6 +200,21 @@ export class TripStore {
     return trips[idx];
   }
 
+  static deleteTrip(id: string): boolean {
+    const trips = this.getTrips();
+    const filtered = trips.filter(t => t.id !== id);
+    this.setStorage('trips', filtered);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(this.STORAGE_PREFIX + 'places_' + id);
+        localStorage.removeItem(this.STORAGE_PREFIX + 'tickets_' + id);
+      } catch (e) {
+        console.warn('Error cleaning trip storage', e);
+      }
+    }
+    return true;
+  }
+
   static getPlaces(tripId: string): Place[] {
     const allPlaces = this.getStorage<Place[]>('places_' + tripId, tripId === DEMO_TRIP_ID ? INITIAL_DEMO_PLACES : []);
     return allPlaces;

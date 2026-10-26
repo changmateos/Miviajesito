@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trip, Place, Ticket } from '@/types';
 import { TripStore } from '@/lib/store/tripStore';
+import { isSupabaseConfigured, createClient } from '@/lib/supabase/client';
 import TripMapWrapper from '@/components/map/TripMapWrapper';
 import YouTubeExtractorBar from '@/components/trip/YouTubeExtractorBar';
 import UnlocatedPlacesDrawer from '@/components/trip/UnlocatedPlacesDrawer';
@@ -95,6 +96,23 @@ export default function TripWorkspacePage({ params }: PageProps) {
   }
 
   // Handlers
+  const handleDeleteCurrentTrip = async () => {
+    if (!trip) return;
+    if (!confirm(`¿Estás seguro de que deseas eliminar el viaje "${trip.title}"? Esta acción borrará todos sus lugares y boletos.`)) {
+      return;
+    }
+    TripStore.deleteTrip(trip.id);
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient();
+        await supabase.from('trips').delete().eq('id', trip.id);
+      } catch (err) {
+        console.warn('Error deleting trip from Supabase', err);
+      }
+    }
+    router.push('/');
+  };
+
   const handlePlacesExtracted = (extractedItems: any[]) => {
     const newPlacesData = extractedItems.map((item, idx) => ({
       name: item.name,
@@ -265,6 +283,13 @@ export default function TripWorkspacePage({ params }: PageProps) {
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 text-xs font-bold rounded-xl shadow-sm transition"
             >
               <Share2 size={14} /> Invitar Amigos
+            </button>
+            <button
+              onClick={handleDeleteCurrentTrip}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl border border-slate-200 dark:border-slate-800 transition"
+              title="Eliminar viaje"
+            >
+              <Trash2 size={16} />
             </button>
           </div>
         </div>
